@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentMethod {
+  COD
+  STRIPE
+}
+
+enum OrderStatus {
+  ORDER_PLACED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+}
+
+enum StoreStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id        String    @id
+  email     String?
+  name      String?
+  image     String?
+  cart      Json?
+  store     Store?
+  orders    Order[]
+  addresses Address[]
+  ratings   Rating[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+}
+
+model Store {
+  id          String      @id @default(cuid())
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id])
+  name        String
+  username    String      @unique
+  description String
+  email       String
+  contact     String
+  address     String
+  logo        String
+  status      StoreStatus @default(pending)
+  isActive    Boolean     @default(false)
+  Product     Product[]
+  orders      Order[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  mrp         Float
+  price       Float
+  category    String
+  images      String[]
+  inStock     Boolean     @default(true)
+  storeId     String
+  store       Store       @relation(fields: [storeId], references: [id])
+  rating      Rating[]
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Coupon {
+  code        String   @id
+  description String
+  discount    Int
+  forNewUser  Boolean  @default(false)
+  forMember   Boolean  @default(false)
+  isPublic    Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  email     String
+  street    String
+  city      String
+  state     String
+  zip       String
+  country   String
+  phone     String
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  storeId       String
+  store         Store         @relation(fields: [storeId], references: [id])
+  addressId     String
+  address       Address       @relation(fields: [addressId], references: [id])
+  total         Float
+  paymentMethod PaymentMethod
+  status        OrderStatus   @default(ORDER_PLACED)
+  isCouponUsed  Boolean       @default(false)
+  coupon        Json?
+  isPaid        Boolean       @default(false)
+  orderItems    OrderItem[]
+  ratings       Rating[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model OrderItem {
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@id([orderId, productId])
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  rating    Int
+  review    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
